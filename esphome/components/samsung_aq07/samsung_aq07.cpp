@@ -1,4 +1,4 @@
-#include "samsung.h"
+#include "samsung_aq07.h"
 #include "esphome/components/remote_base/remote_base.h"
 
 namespace esphome {
