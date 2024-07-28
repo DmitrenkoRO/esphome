@@ -37,11 +37,19 @@ void SamsungAq07Climate::transmit_state() {
 
   data->mark(SAMSUNG_AQ07_HEADER_MARK);
   data->space(SAMSUNG_AQ07_HEADER_SPACE);
+  // for (int i = 0; i < 7; i++) {
+  //   for (uint8_t mask = 1; mask > 0; mask >>= 1) {  // iterate through bit mask
+  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
+  //     bool bit = remote_state[i] & mask;
+  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
+  //   }
+  // }
   for (int i = 0; i < 7; i++) {
-    for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
+    for (int j=0;j<8;j++){
       data->mark(SAMSUNG_AQ07_BIT_MARK);
-      bool bit = remote_state[i] & mask;
-      data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
+      bool bit = (remote_state[i] & (1 << (7 - j))) ? 1 : 0;
+      //remote_bit[i][j] = bit & 0x01;
+      data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE); 
     }
   }
   data->mark(SAMSUNG_AQ07_BIT_MARK);
