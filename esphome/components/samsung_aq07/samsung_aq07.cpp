@@ -17,13 +17,22 @@ void SamsungAq07Climate::transmit_state() {
   remote_state[24] = fan_speed >> 8;
   remote_state[25] = fan_speed & 0xff;
   //0x80477F84C4880F TEST on cool 18c
-  remote_state[0] = 0x80;
-  remote_state[1] = 0x47;
-  remote_state[2] = 0x7F;
-  remote_state[3] = 0x84;
-  remote_state[4] = 0xC4;
-  remote_state[5] = 0x88;
-  remote_state[6] = 0x0F;
+  //0xF0112321FEE201 UNREVERSED BITS
+  // remote_state[0] = 0x80;
+  // remote_state[1] = 0x47;
+  // remote_state[2] = 0x7F;
+  // remote_state[3] = 0x84;
+  // remote_state[4] = 0xC4;
+  // remote_state[5] = 0x88;
+  // remote_state[6] = 0x0F;
+
+  remote_state[0] = 0xF0;
+  remote_state[1] = 0x11;
+  remote_state[2] = 0x23;
+  remote_state[3] = 0x21;
+  remote_state[4] = 0xFE;
+  remote_state[5] = 0xE2;
+  remote_state[6] = 0x01;
   //TEST
 
   // Calculate checksum
@@ -44,14 +53,23 @@ void SamsungAq07Climate::transmit_state() {
   //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
   //   }
   // }
-  for (int i = 0; i < 7; i++) {
+  // for (int i = 0; i < 7; i++) {
+  //   for (int j=0;j<8;j++){
+  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
+  //     bool bit = (remote_state[i] & (1 << (7 - j))) ? 1 : 0;
+  //     //remote_bit[i][j] = bit & 0x01;
+  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE); 
+  //   }
+  // }
+  for (int i = 6; i > -1; i--) {
     for (int j=0;j<8;j++){
-      data->mark(SAMSUNG_AQ07_BIT_MARK);
-      bool bit = (remote_state[i] & (1 << (7 - j))) ? 1 : 0;
-      //remote_bit[i][j] = bit & 0x01;
+      data->mark(SAMSUNG_AQ07_BIT_MARK);      
+      bool bit = (remote_state[6-i] & (1 << (j))) ? 1 : 0;
+      //remote_bit[i][j] = bit & 0x01; 
       data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE); 
     }
   }
+
   data->mark(SAMSUNG_AQ07_BIT_MARK);
   // data->space(SAMSUNG_AQ07_MESSAGE_SPACE);
   // data->mark(SAMSUNG_AQ07_HEADER_MARK);
