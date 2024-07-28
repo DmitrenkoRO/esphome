@@ -16,11 +16,20 @@ void SamsungAq07Climate::transmit_state() {
   uint16_t fan_speed = this->fan_speed_();
   remote_state[24] = fan_speed >> 8;
   remote_state[25] = fan_speed & 0xff;
+  //0x80477F84C4880F TEST on cool 18c
+  remote_state[0] = 0x80;
+  remote_state[1] = 0x47;
+  remote_state[2] = 0x7F;
+  remote_state[3] = 0x84;
+  remote_state[4] = 0xC4;
+  remote_state[5] = 0x88;
+  remote_state[6] = 0x0F;
+  //TEST
 
   // Calculate checksum
-  for (int i = 16; i < 34; i++) {
-    remote_state[34] += remote_state[i];
-  }
+  // for (int i = 16; i < 34; i++) {
+  //   remote_state[34] += remote_state[i];
+  // }
 
   auto transmit = this->transmitter_->transmit();
   auto *data = transmit.get_data();
@@ -28,7 +37,7 @@ void SamsungAq07Climate::transmit_state() {
 
   data->mark(SAMSUNG_AQ07_HEADER_MARK);
   data->space(SAMSUNG_AQ07_HEADER_SPACE);
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 7; i++) {
     for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
       data->mark(SAMSUNG_AQ07_BIT_MARK);
       bool bit = remote_state[i] & mask;
@@ -36,30 +45,30 @@ void SamsungAq07Climate::transmit_state() {
     }
   }
   data->mark(SAMSUNG_AQ07_BIT_MARK);
-  data->space(SAMSUNG_AQ07_MESSAGE_SPACE);
-  data->mark(SAMSUNG_AQ07_HEADER_MARK);
-  data->space(SAMSUNG_AQ07_HEADER_SPACE);
+  // data->space(SAMSUNG_AQ07_MESSAGE_SPACE);
+  // data->mark(SAMSUNG_AQ07_HEADER_MARK);
+  // data->space(SAMSUNG_AQ07_HEADER_SPACE);
 
-  for (int i = 8; i < 16; i++) {
-    for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
-      data->mark(SAMSUNG_AQ07_BIT_MARK);
-      bool bit = remote_state[i] & mask;
-      data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
-    }
-  }
-  data->mark(SAMSUNG_AQ07_BIT_MARK);
-  data->space(SAMSUNG_AQ07_MESSAGE_SPACE);
-  data->mark(SAMSUNG_AQ07_HEADER_MARK);
-  data->space(SAMSUNG_AQ07_HEADER_SPACE);
+  // for (int i = 8; i < 16; i++) {
+  //   for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
+  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
+  //     bool bit = remote_state[i] & mask;
+  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
+  //   }
+  // }
+  // data->mark(SAMSUNG_AQ07_BIT_MARK);
+  // data->space(SAMSUNG_AQ07_MESSAGE_SPACE);
+  // data->mark(SAMSUNG_AQ07_HEADER_MARK);
+  // data->space(SAMSUNG_AQ07_HEADER_SPACE);
 
-  for (int i = 16; i < 35; i++) {
-    for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
-      data->mark(SAMSUNG_AQ07_BIT_MARK);
-      bool bit = remote_state[i] & mask;
-      data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
-    }
-  }
-  data->mark(SAMSUNG_AQ07_BIT_MARK);
+  // for (int i = 16; i < 35; i++) {
+  //   for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
+  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
+  //     bool bit = remote_state[i] & mask;
+  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
+  //   }
+  // }
+  // data->mark(SAMSUNG_AQ07_BIT_MARK);
   data->space(0);
 
   transmit.perform();
