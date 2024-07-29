@@ -7,7 +7,7 @@ namespace samsung_aq07 {
 
 // Values for Samsung AQ07A1AE IR Controller
 // Temperature
-const uint8_t SAMSUNG_AQ07_TEMP_MIN = 10;  // Celsius
+const uint8_t SAMSUNG_AQ07_TEMP_MIN = 18;  // Celsius
 const uint8_t SAMSUNG_AQ07_TEMP_MAX = 30;  // Celsius
 
 typedef struct {
@@ -23,23 +23,31 @@ typedef struct {
 
 // Modes
 const uint8_t SAMSUNG_AQ07_MODE_AUTO = 0x00;
-const uint8_t SAMSUNG_AQ07_MODE_COOL = 0x30;
-const uint8_t SAMSUNG_AQ07_MODE_HEAT = 0x40;
-const uint8_t SAMSUNG_AQ07_MODE_DRY = 0x20;
-const uint8_t SAMSUNG_AQ07_MODE_FAN = 0x60;
+const uint8_t SAMSUNG_AQ07_MODE_COOL = 0x01;
+const uint8_t SAMSUNG_AQ07_MODE_DRY = 0x02;
+const uint8_t SAMSUNG_AQ07_MODE_FAN = 0x03;
+const uint8_t SAMSUNG_AQ07_MODE_HEAT = 0x04;
+const uint8_t SAMSUNG_AQ07_MODE_TREE = 0x40; //Hidden button with tree icon on the lcd, idk what it is.
 const uint8_t SAMSUNG_AQ07_MODE_ON = 0x01;
 const uint8_t SAMSUNG_AQ07_MODE_OFF = 0x00;
 const uint8_t SAMSUNG_AQ07_ZB_OFF = 0xC;
 const uint8_t SAMSUNG_AQ07_ZB_ON = 0xF;
 
 // Fan Speed
-const uint8_t SAMSUNG_AQ07_FAN_AUTO = 0xA0;
+const uint8_t SAMSUNG_AQ07_FAN_AUTO = 0x00;
 const uint8_t SAMSUNG_AQ07_FAN_SILENT = 0xB0;
-const uint8_t SAMSUNG_AQ07_FAN_1 = 0x30;
-const uint8_t SAMSUNG_AQ07_FAN_2 = 0x40;
-const uint8_t SAMSUNG_AQ07_FAN_3 = 0x50;
+const uint8_t SAMSUNG_AQ07_FAN_1 = 0x40;
+const uint8_t SAMSUNG_AQ07_FAN_2 = 0x80;
+const uint8_t SAMSUNG_AQ07_FAN_3 = 0xA0;
 const uint8_t SAMSUNG_AQ07_FAN_4 = 0x60;
 const uint8_t SAMSUNG_AQ07_FAN_5 = 0x70;
+
+const uint8_t SAMSUNG_AQ07_DATA3_DEF = 0x1F;
+const uint8_t SAMSUNG_AQ07_V_SWING = 0x05;
+const uint8_t SAMSUNG_AQ07_H_SWING = 0x02;
+const uint8_t SAMSUNG_AQ07_VH_SWING = 0x03;
+
+const uint8_t SAMSUNG_AQ07_TURBO   = 0x60;
 
 // IR Transmission
 const uint32_t SAMSUNG_AQ07_IR_FREQUENCY = 38000;
@@ -57,7 +65,7 @@ class SamsungAq07Climate : public climate_ir::ClimateIR {
  public:
   SamsungAq07Climate()
       : climate_ir::ClimateIR(SAMSUNG_AQ07_TEMP_MIN, SAMSUNG_AQ07_TEMP_MAX, 1.0f, true, true,
-                              {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
+                              {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_QUIET ,climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
                                climate::CLIMATE_FAN_HIGH},
                               {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL,
                                climate::CLIMATE_SWING_HORIZONTAL, climate::CLIMATE_SWING_BOTH}) {}
@@ -67,8 +75,9 @@ class SamsungAq07Climate : public climate_ir::ClimateIR {
   void transmit_state() override;
   uint8_t zero_byte_();  
   uint8_t operation_mode_();
-  uint16_t fan_speed_();
+  uint8_t fan_speed_();
   uint8_t temperature_();
+  uint8_t swing_turbo_mode_();
   // Handle received IR Buffer
   bool on_receive(remote_base::RemoteReceiveData data) override;
   bool parse_state_frame_(const uint8_t frame[]);

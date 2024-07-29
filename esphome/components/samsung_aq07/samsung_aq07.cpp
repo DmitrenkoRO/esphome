@@ -10,24 +10,23 @@ void SamsungAq07Climate::transmit_state() {
   uint8_t remote_state[35] = {0x11, 0xDA, 0x27, 0x00, 0xC5, 0x00, 0x00, 0xD7, 0x11, 0xDA, 0x27, 0x00,
                               0x42, 0x49, 0x05, 0xA2, 0x11, 0xDA, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00,
                               0x00, 0x00, 0x00, 0x06, 0x60, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x00};
+
   //remote_state[0]  = this->zero_byte_();
-  remote_state[21] = this->operation_mode_();
-  remote_state[22] = this->temperature_();
-  uint16_t fan_speed = this->fan_speed_();
-  remote_state[24] = fan_speed >> 8;
-  remote_state[25] = fan_speed & 0xff;
+  //remote_state[21] = this->operation_mode_();
+  //remote_state[22] = this->temperature_();
+  uint8_t fan_speed_and_temp = (fan_speed_()&0xE0)| (this->temperature_()&0x1F);
 
   remote_state_t state;
 
-  state.zero = this->zero_byte_();//0xF;     // Присваиваем значение первым 4 битам
-  state.mode0 = 0x01;  // Присваиваем значение первому полному байту
-  state.data0 = 0x12;  // Присваиваем значение второму полному байту
-  state.data1 = 0x32;  // Присваиваем значение третьему полному байту
-  state.data2 = 0x1F;  // Присваиваем значение четвертому полному байту
-  state.csum = 0xEE;  // Присваиваем значение пятому полному байту
-  state.data3 = 0x20;   // Присваиваем значение шестому полному байту
-  state.last = 0x1;      // Присваиваем значение последним 4 битам
-
+  state.zero = this->zero_byte_();          // 1st 4 bits
+  state.mode0 = this->operation_mode_();    // 1st full byte
+  state.data0 = fan_speed_and_temp;         // 2nd full byte
+  state.data1 = 0x32;                         // 3rd full byte  //Always 0x32 if RC is not sending SET TIME/TIMER CMDS
+  state.data2 = this->swing_turbo_mode_();  // 4th full byte
+  state.csum = 0xEE;                        // 5th full byte
+  state.data3 = 0x20;                       // Last full byte //Seems whose last bytes always static
+  state.last = 0x1;                         // Last 4 bits
+  ESP_LOGD("samsung_aq07", "state.mode0():%02X",state.mode0);  
   remote_state[0] = (state.zero<<4 )  | ((state.mode0>>4)&0x0F);
   remote_state[1] = (state.mode0<<4 ) | ((state.data0>>4)&0x0F);
   remote_state[2] = (state.data0<<4 ) | ((state.data1>>4)&0x0F);
@@ -35,15 +34,9 @@ void SamsungAq07Climate::transmit_state() {
   remote_state[4] = (state.data2<<4 ) | ((state.csum>>4)&0x0F);
   remote_state[5] = (state.csum<<4  ) | ((state.data3>>4)&0x0F);
   remote_state[6] = (state.data3<<4 ) | ((state.last)&0x0F);
+  
   //0x80477F84C4880F TEST on cool 18c
   //0xF0112321FEE201 UNREVERSED BITS
-  // remote_state[0] = 0x80;
-  // remote_state[1] = 0x47;
-  // remote_state[2] = 0x7F;
-  // remote_state[3] = 0x84;
-  // remote_state[4] = 0xC4;
-  // remote_state[5] = 0x88;
-  // remote_state[6] = 0x0F;
 
   //remote_state[0] = 0xF0;
   // remote_state[1] = 0x11;
@@ -58,7 +51,7 @@ void SamsungAq07Climate::transmit_state() {
   int sum=0x0;
     for (int i = 6; i > -1; i--) {
         for (int j=0;j<8;j++){
-            if(i==4&j<4||i==5&j>4){
+            if((i==4)&(j<4)||(i==5)&(j>4)){
                 sum += 0;
             }
             else
@@ -67,8 +60,7 @@ void SamsungAq07Climate::transmit_state() {
             }
         }
             //printf("%01X",*(remote_state+i));
-            //remote_bit[i][j] = bit & 0x01; 
-            
+            //remote_bit[i][j] = bit & 0x01;          
     }
     sum= ~sum;
     //printf("\nSum:%d\n",sum);
@@ -83,21 +75,6 @@ void SamsungAq07Climate::transmit_state() {
 
   data->mark(SAMSUNG_AQ07_HEADER_MARK);
   data->space(SAMSUNG_AQ07_HEADER_SPACE);
-  // for (int i = 0; i < 7; i++) {
-  //   for (uint8_t mask = 1; mask > 0; mask >>= 1) {  // iterate through bit mask
-  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
-  //     bool bit = remote_state[i] & mask;
-  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
-  //   }
-  // }
-  // for (int i = 0; i < 7; i++) {
-  //   for (int j=0;j<8;j++){
-  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
-  //     bool bit = (remote_state[i] & (1 << (7 - j))) ? 1 : 0;
-  //     //remote_bit[i][j] = bit & 0x01;
-  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE); 
-  //   }
-  // }
 
   ESP_LOGD("samsung_aq07", "remote_state=%02X%02X%02X%02X%02X%02X%02X",remote_state[0],remote_state[1],remote_state[2],remote_state[3],remote_state[4],remote_state[5],remote_state[6]);
 
@@ -108,32 +85,7 @@ void SamsungAq07Climate::transmit_state() {
       data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE); 
     }
   }
-
   data->mark(SAMSUNG_AQ07_BIT_MARK);
-  // data->space(SAMSUNG_AQ07_MESSAGE_SPACE);
-  // data->mark(SAMSUNG_AQ07_HEADER_MARK);
-  // data->space(SAMSUNG_AQ07_HEADER_SPACE);
-
-  // for (int i = 8; i < 16; i++) {
-  //   for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
-  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
-  //     bool bit = remote_state[i] & mask;
-  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
-  //   }
-  // }
-  // data->mark(SAMSUNG_AQ07_BIT_MARK);
-  // data->space(SAMSUNG_AQ07_MESSAGE_SPACE);
-  // data->mark(SAMSUNG_AQ07_HEADER_MARK);
-  // data->space(SAMSUNG_AQ07_HEADER_SPACE);
-
-  // for (int i = 16; i < 35; i++) {
-  //   for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
-  //     data->mark(SAMSUNG_AQ07_BIT_MARK);
-  //     bool bit = remote_state[i] & mask;
-  //     data->space(bit ? SAMSUNG_AQ07_ONE_SPACE : SAMSUNG_AQ07_ZERO_SPACE);
-  //   }
-  // }
-  // data->mark(SAMSUNG_AQ07_BIT_MARK);
   data->space(0);
 
   transmit.perform();
@@ -151,17 +103,17 @@ uint8_t SamsungAq07Climate::zero_byte_() {
     case climate::CLIMATE_MODE_HEAT:
       break;  
     case climate::CLIMATE_MODE_OFF:
+      zero_byte = SAMSUNG_AQ07_ZB_OFF;
       break;  
     default:
       zero_byte = SAMSUNG_AQ07_ZB_OFF;
       break;
   }
-
   return zero_byte;
 }
 
 uint8_t SamsungAq07Climate::operation_mode_() {
-  uint8_t operating_mode = SAMSUNG_AQ07_MODE_COOL;
+  uint8_t operating_mode = SAMSUNG_AQ07_MODE_AUTO;
   switch (this->mode) {
     case climate::CLIMATE_MODE_COOL:
       operating_mode |= SAMSUNG_AQ07_MODE_COOL;
@@ -173,7 +125,7 @@ uint8_t SamsungAq07Climate::operation_mode_() {
       operating_mode |= SAMSUNG_AQ07_MODE_HEAT;
       break;
     case climate::CLIMATE_MODE_HEAT_COOL:
-      operating_mode |= SAMSUNG_AQ07_MODE_AUTO;
+      operating_mode |= SAMSUNG_AQ07_MODE_COOL;
       break;
     case climate::CLIMATE_MODE_FAN_ONLY:
       operating_mode |= SAMSUNG_AQ07_MODE_FAN;
@@ -182,55 +134,90 @@ uint8_t SamsungAq07Climate::operation_mode_() {
       operating_mode = SAMSUNG_AQ07_MODE_COOL;
       break;
   }
+  ESP_LOGD("samsung_aq07", "operation_mode_():%02X",operating_mode);
 
   return operating_mode;
 }
 
-uint16_t SamsungAq07Climate::fan_speed_() {
-  uint16_t fan_speed;
+uint8_t SamsungAq07Climate::fan_speed_() {
+  uint8_t fan_speed;
   switch (this->fan_mode.value()) {
+    case climate::CLIMATE_FAN_QUIET:
+      fan_speed = SAMSUNG_AQ07_FAN_1;
+      break;
     case climate::CLIMATE_FAN_LOW:
-      fan_speed = SAMSUNG_AQ07_FAN_1 << 8;
+      fan_speed = SAMSUNG_AQ07_FAN_2;
       break;
     case climate::CLIMATE_FAN_MEDIUM:
-      fan_speed = SAMSUNG_AQ07_FAN_3 << 8;
+      fan_speed = SAMSUNG_AQ07_FAN_3;
       break;
     case climate::CLIMATE_FAN_HIGH:
-      fan_speed = SAMSUNG_AQ07_FAN_5 << 8;
+      fan_speed = SAMSUNG_AQ07_FAN_AUTO;
       break;
     case climate::CLIMATE_FAN_AUTO:
     default:
-      fan_speed = SAMSUNG_AQ07_FAN_AUTO << 8;
+      fan_speed = SAMSUNG_AQ07_FAN_AUTO;
   }
 
   // If swing is enabled switch first 4 bits to 1111
+  // switch (this->swing_mode) {
+  //   case climate::CLIMATE_SWING_VERTICAL:
+  //     fan_speed |= 0x0F00;
+  //     break;
+  //   case climate::CLIMATE_SWING_HORIZONTAL:
+  //     fan_speed |= 0x000F;
+  //     break;
+  //   case climate::CLIMATE_SWING_BOTH:
+  //     fan_speed |= 0x0F0F;
+  //     break;
+  //   default:
+  //     break;
+  // }
+  ESP_LOGD("samsung_aq07", "fan_speed_():%02X",fan_speed);
+  return fan_speed;
+}
+
+uint8_t SamsungAq07Climate::swing_turbo_mode_() {
+  uint8_t swing_turbo_byte;
+  switch (this->fan_mode.value()) {
+    case climate::CLIMATE_FAN_HIGH:
+      swing_turbo_byte = SAMSUNG_AQ07_DATA3_DEF + SAMSUNG_AQ07_TURBO;
+      break;
+    default:
+      swing_turbo_byte = SAMSUNG_AQ07_DATA3_DEF;
+  }
+
+  //If swing is enabled switch first 4 bits to 1111
   switch (this->swing_mode) {
     case climate::CLIMATE_SWING_VERTICAL:
-      fan_speed |= 0x0F00;
+      swing_turbo_byte -= SAMSUNG_AQ07_V_SWING;
       break;
     case climate::CLIMATE_SWING_HORIZONTAL:
-      fan_speed |= 0x000F;
+      swing_turbo_byte -= SAMSUNG_AQ07_H_SWING;
       break;
     case climate::CLIMATE_SWING_BOTH:
-      fan_speed |= 0x0F0F;
+      swing_turbo_byte -= SAMSUNG_AQ07_VH_SWING;
       break;
     default:
       break;
   }
-  return fan_speed;
+  ESP_LOGD("samsung_aq07", "swing_turbo_mode_():%02X",swing_turbo_byte);
+  return swing_turbo_byte;
 }
 
 uint8_t SamsungAq07Climate::temperature_() {
   // Force special temperatures depending on the mode
   switch (this->mode) {
     case climate::CLIMATE_MODE_FAN_ONLY:
-      return 0x32;
+      return 0x5E; //small fan speed
     case climate::CLIMATE_MODE_HEAT_COOL:
     case climate::CLIMATE_MODE_DRY:
-      return 0xc0;
+      //return 0xc0;
     default:
       uint8_t temperature = (uint8_t) roundf(clamp<float>(this->target_temperature, SAMSUNG_AQ07_TEMP_MIN, SAMSUNG_AQ07_TEMP_MAX));
-      return temperature << 1;
+      ESP_LOGD("samsung_aq07", "temperature_():%u",temperature);
+      ESP_LOGD("samsung_aq07", "temperature_() << 1:%u",temperature << 1); 
+      return temperature;
   }
 }
 
