@@ -10,12 +10,31 @@ void SamsungAq07Climate::transmit_state() {
   uint8_t remote_state[35] = {0x11, 0xDA, 0x27, 0x00, 0xC5, 0x00, 0x00, 0xD7, 0x11, 0xDA, 0x27, 0x00,
                               0x42, 0x49, 0x05, 0xA2, 0x11, 0xDA, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00,
                               0x00, 0x00, 0x00, 0x06, 0x60, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x00};
-  remote_state[0]  = this->zero_byte_();
+  //remote_state[0]  = this->zero_byte_();
   remote_state[21] = this->operation_mode_();
   remote_state[22] = this->temperature_();
   uint16_t fan_speed = this->fan_speed_();
   remote_state[24] = fan_speed >> 8;
   remote_state[25] = fan_speed & 0xff;
+
+  remote_state_t state;
+
+  state.zero = this->zero_byte_();//0xF;     // Присваиваем значение первым 4 битам
+  state.mode0 = 0x01;  // Присваиваем значение первому полному байту
+  state.data0 = 0x12;  // Присваиваем значение второму полному байту
+  state.data1 = 0x32;  // Присваиваем значение третьему полному байту
+  state.data2 = 0x1F;  // Присваиваем значение четвертому полному байту
+  state.csum = 0xEE;  // Присваиваем значение пятому полному байту
+  state.data3 = 0x20;   // Присваиваем значение шестому полному байту
+  state.last = 0x1;      // Присваиваем значение последним 4 битам
+
+  remote_state[0] = (state.zero<<4 )  | ((state.mode0>>4)&0x0F);
+  remote_state[1] = (state.mode0<<4 ) | ((state.data0>>4)&0x0F);
+  remote_state[2] = (state.data0<<4 ) | ((state.data1>>4)&0x0F);
+  remote_state[3] = (state.data1<<4 ) | ((state.data2>>4)&0x0F);
+  remote_state[4] = (state.data2<<4 ) | ((state.csum>>4)&0x0F);
+  remote_state[5] = (state.csum<<4  ) | ((state.data3>>4)&0x0F);
+  remote_state[6] = (state.data3<<4 ) | ((state.last)&0x0F);
   //0x80477F84C4880F TEST on cool 18c
   //0xF0112321FEE201 UNREVERSED BITS
   // remote_state[0] = 0x80;
@@ -27,12 +46,12 @@ void SamsungAq07Climate::transmit_state() {
   // remote_state[6] = 0x0F;
 
   //remote_state[0] = 0xF0;
-  remote_state[1] = 0x11;
-  remote_state[2] = 0x23;
-  remote_state[3] = 0x21;
-  remote_state[4] = 0xFE;
-  remote_state[5] = 0xE2;
-  remote_state[6] = 0x01;
+  // remote_state[1] = 0x11;
+  // remote_state[2] = 0x23;
+  // remote_state[3] = 0x21;
+  // remote_state[4] = 0xFE;
+  // remote_state[5] = 0xE2;
+  // remote_state[6] = 0x01;
   //TEST
 
   // Calculate checksum
@@ -54,8 +73,9 @@ void SamsungAq07Climate::transmit_state() {
     sum= ~sum;
     //printf("\nSum:%d\n",sum);
     //printf("SumX:%08b\n",sum&0xFF);
-    remote_state[4] |= remote_state[4]<<4&0xF0 | sum>>4&0x0F;
-    remote_state[5] = remote_state[5]&0x0F | sum<<4&0xF0;
+    remote_state[4] &= 0xF0;    remote_state[5] &= 0x0F;
+    remote_state[4] |= sum>>4&0x0F;//remote_state[4]<<4&0xF0 | sum>>4&0x0F;
+    remote_state[5] |= ((sum<<4)&0xf0);//remote_state[5]&0x0F | sum<<4&0xF0;
 
   auto transmit = this->transmitter_->transmit();
   auto *data = transmit.get_data();

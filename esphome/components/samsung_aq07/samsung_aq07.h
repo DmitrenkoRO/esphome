@@ -10,14 +10,27 @@ namespace samsung_aq07 {
 const uint8_t SAMSUNG_AQ07_TEMP_MIN = 10;  // Celsius
 const uint8_t SAMSUNG_AQ07_TEMP_MAX = 30;  // Celsius
 
+typedef struct {
+    uint8_t zero : 4;    // Первые 4 бита
+    uint8_t mode0;      // Полный байт
+    uint8_t data0;      // Полный байт
+    uint8_t data1;      // Полный байт
+    uint8_t data2;      // Полный байт
+    uint8_t csum;      // Полный байт
+    uint8_t data3;      // Полный байт
+    uint8_t last : 4;     // Последние 4 бита
+} remote_state_t;
+
 // Modes
 const uint8_t SAMSUNG_AQ07_MODE_AUTO = 0x00;
 const uint8_t SAMSUNG_AQ07_MODE_COOL = 0x30;
 const uint8_t SAMSUNG_AQ07_MODE_HEAT = 0x40;
 const uint8_t SAMSUNG_AQ07_MODE_DRY = 0x20;
 const uint8_t SAMSUNG_AQ07_MODE_FAN = 0x60;
-const uint8_t SAMSUNG_AQ07_ZB_OFF = 0xС0;
-const uint8_t SAMSUNG_AQ07_ZB_ON = 0xF0;
+const uint8_t SAMSUNG_AQ07_MODE_ON = 0x01;
+const uint8_t SAMSUNG_AQ07_MODE_OFF = 0x00;
+const uint8_t SAMSUNG_AQ07_ZB_OFF = 0xC;
+const uint8_t SAMSUNG_AQ07_ZB_ON = 0xF;
 
 // Fan Speed
 const uint8_t SAMSUNG_AQ07_FAN_AUTO = 0xA0;
