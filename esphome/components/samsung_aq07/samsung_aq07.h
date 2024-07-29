@@ -16,8 +16,8 @@ const uint8_t SAMSUNG_AQ07_MODE_COOL = 0x30;
 const uint8_t SAMSUNG_AQ07_MODE_HEAT = 0x40;
 const uint8_t SAMSUNG_AQ07_MODE_DRY = 0x20;
 const uint8_t SAMSUNG_AQ07_MODE_FAN = 0x60;
-const uint8_t SAMSUNG_AQ07_MODE_OFF = 0x00;
-const uint8_t SAMSUNG_AQ07_MODE_ON = 0x01;
+const uint8_t SAMSUNG_AQ07_ZB_OFF = 0xС0;
+const uint8_t SAMSUNG_AQ07_ZB_ON = 0xF0;
 
 // Fan Speed
 const uint8_t SAMSUNG_AQ07_FAN_AUTO = 0xA0;
@@ -52,6 +52,7 @@ class SamsungAq07Climate : public climate_ir::ClimateIR {
  protected:
   // Transmit via IR the state of this climate controller.
   void transmit_state() override;
+  uint8_t zero_byte_();  
   uint8_t operation_mode_();
   uint16_t fan_speed_();
   uint8_t temperature_();
